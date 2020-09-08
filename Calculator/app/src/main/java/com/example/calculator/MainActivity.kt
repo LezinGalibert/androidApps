@@ -55,7 +55,16 @@ class MainActivity : AppCompatActivity() {
         val listener = View.OnClickListener { v ->
             // Cast b type to be Button, not all View objects have a text field
             val b = v as Button
-            newNumber.append(b.text)
+
+            if (b.text == "-X"){
+                if (newNumber == null) {
+                    newNumber.append("-")
+                } else {
+                    newNumber == null
+                }
+            } else {
+                newNumber.append(b.text)
+            }
         }
 
         // Could loop through buttons (list?)
@@ -70,6 +79,7 @@ class MainActivity : AppCompatActivity() {
         button8.setOnClickListener(listener)
         button9.setOnClickListener(listener)
         buttonDot.setOnClickListener(listener)
+        buttonMinusNumber.setOnClickListener(listener)
 
         val opListener = View.OnClickListener { v ->
             val op = (v as Button).text.toString()

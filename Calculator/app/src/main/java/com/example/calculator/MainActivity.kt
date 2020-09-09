@@ -100,6 +100,17 @@ class MainActivity : AppCompatActivity() {
         buttonMinus.setOnClickListener(opListener)
         buttonPlus.setOnClickListener(opListener)
 
+        val clearListener = View.OnClickListener { v ->
+            val op = (v as Button).text.toString()
+
+            operand1 = null
+            pendingOperation = "="
+            result.setText("")
+            operation.text = pendingOperation
+        }
+
+        buttonClear.setOnClickListener(clearListener)
+
     }
 
     private fun performOperation(value: Double, operation: String) {

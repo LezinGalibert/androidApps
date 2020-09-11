@@ -49,7 +49,10 @@ class ParseApplications {
                                 "releasedate" -> currentRecord.releaseDate = textValue
                                 "summary" -> currentRecord.summary = textValue
                                 "image" -> currentRecord.imageURL = textValue
+
+
                             }
+                            Log.d(TAG, "parse: Starting tag for $tagName")
                         }
                     }
                 }

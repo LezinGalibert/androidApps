@@ -2,13 +2,14 @@ package com.example.flickrbrowser
 
 import android.os.Bundle
 import android.util.Log
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 
-class MainActivity : AppCompatActivity() {
+private const val TAG = "MainActivity"
+
+class MainActivity : AppCompatActivity(), GetRawData.OnDownloadComplete {
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -18,10 +19,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
 
-        findViewById<FloatingActionButton>(R.id.fab).setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }
+        val getRawData = GetRawData(this)
+        getRawData.execute("https://api.flickr.com/services/feeds/photos_public.gne?tags=android,oreo&format=json&nojsoncallback=1")
+
+        Log.d(TAG, "onCreate ends")
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -46,7 +47,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    companion object {
-        private const val TAG = "MainActivity"
+    override fun onDownloadComplete(data: String, status: DownloadStatus) {
+        if (status == DownloadStatus.OK) {
+            Log.d(TAG, "onDownloadComplete called, data is $data")
+        } else {
+            Log.d(TAG, "onDownloadComplete failed with status $status. Error message is: $data")
+        }
     }
 }

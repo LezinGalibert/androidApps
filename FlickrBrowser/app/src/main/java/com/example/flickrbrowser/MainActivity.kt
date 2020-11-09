@@ -1,16 +1,26 @@
 package com.example.flickrbrowser
 
+import academy.learnprogramming.flickrbrowser.R
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import androidx.appcompat.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.Toast
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
 
 private const val TAG = "MainActivity"
 
-class MainActivity : AppCompatActivity(), GetRawData.OnDownloadComplete, GetFlickrJsonData.OnDataAvailable {
-
+class MainActivity : BaseActivity(),
+        GetRawData.OnDownloadComplete,
+        GetFlickrJsonData.OnDataAvailable,
+        RecyclerItemClickListener.onRecyclerClickListener {
+    private val flickrRecyclerViewAdapter = FlickrRecyclerViewAdapter(ArrayList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -18,7 +28,13 @@ class MainActivity : AppCompatActivity(), GetRawData.OnDownloadComplete, GetFlic
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        setSupportActionBar(findViewById(R.id.toolbar))
+        setSupportActionBar(toolbar)
+
+        activateToolBar(false)
+
+        recycler_view.layoutManager = LinearLayoutManager(this)
+        recycler_view.addOnItemTouchListener(RecyclerItemClickListener(this, recycler_view, this))
+        recycler_view.adapter = flickrRecyclerViewAdapter
 
         val url = createUri("https://api.flickr.com/services/feeds/photos_public.gne", "android, oreo", "en_us", true)
 
@@ -26,6 +42,22 @@ class MainActivity : AppCompatActivity(), GetRawData.OnDownloadComplete, GetFlic
         getRawData.execute(url)
 
         Log.d(TAG, "onCreate ends")
+    }
+
+    override fun onItemClick(view: View, position: Int) {
+        Log.d(TAG, ".onItemClick starts")
+        Toast.makeText(this, "Short tap at position $position", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onItemLongClick(view: View, position: Int) {
+        Log.d(TAG, ".onItemLongClick starts")
+        //Toast.makeText(this, "Long tap at position $position", Toast.LENGTH_SHORT).show()
+        val photo = flickrRecyclerViewAdapter.getPhoto(position)
+        if (photo != null) {
+                    val intent = Intent(this, PhotoDetailsActivity::class.java)
+                    intent.putExtra(PHOTO_TRANSFER, photo)
+                    startActivity(intent)
+        }
     }
 
     private fun createUri(baseURL: String, searchCriteria: String, lang: String, matchAll: Boolean): String {
@@ -45,7 +77,7 @@ class MainActivity : AppCompatActivity(), GetRawData.OnDownloadComplete, GetFlic
     override fun onDataAvailable(data: List<Photo>) {
         Log.d(TAG, ".onDataAvailable called, data is $data")
 
-        
+        flickrRecyclerViewAdapter.loadNewPhoto(data)
 
         Log.d(TAG, ".onDataAvailable ends")
     }

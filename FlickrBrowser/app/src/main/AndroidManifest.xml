@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.flickrbrowser">
+    package="academy.learnprogramming.flickrbrowser">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -11,14 +12,32 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FlickrBrowser">
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.flickrbrowser.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/Theme.FlickrBrowser.NoActionBar">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
+        <activity
+            android:name="com.example.flickrbrowser.SearchActivity"
+            android:label="@string/title_activity_search"
+            android:parentActivityName="com.example.flickrbrowser.MainActivity"
+            android:theme="@style/Theme.FlickrBrowser.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.flickrbrowser.MainActivity"/>
+        </activity>
+        <activity
+            android:name="com.example.flickrbrowser.PhotoDetailsActivity"
+            android:label="@string/title_activity_photo_details"
+            android:parentActivityName="com.example.flickrbrowser.MainActivity"
+            android:theme="@style/Theme.FlickrBrowser.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.flickrbrowser.MainActivity"/>
         </activity>
     </application>
 

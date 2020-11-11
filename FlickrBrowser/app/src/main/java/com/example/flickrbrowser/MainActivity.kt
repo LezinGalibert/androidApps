@@ -3,6 +3,7 @@ package com.example.flickrbrowser
 import academy.learnprogramming.flickrbrowser.R
 import android.content.Intent
 import android.net.Uri
+import android.os.AsyncTask
 import android.os.Bundle
 import androidx.preference.PreferenceManager
 import android.util.Log
@@ -13,12 +14,18 @@ import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.NonCancellable.cancel
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.IOException
+import java.net.MalformedURLException
+import java.net.URL
 
 private const val TAG = "MainActivity"
 
 class MainActivity : BaseActivity(),
-        GetRawData.OnDownloadComplete,
-        GetFlickrJsonData.OnDataAvailable,
         RecyclerItemClickListener.onRecyclerClickListener {
     private val flickrRecyclerViewAdapter = FlickrRecyclerViewAdapter(ArrayList())
 
@@ -36,10 +43,11 @@ class MainActivity : BaseActivity(),
         recycler_view.addOnItemTouchListener(RecyclerItemClickListener(this, recycler_view, this))
         recycler_view.adapter = flickrRecyclerViewAdapter
 
-        val url = createUri("https://api.flickr.com/services/feeds/photos_public.gne", "android, oreo", "en_us", true)
+        CoroutineScope(Dispatchers.Main).launch {
+            val url = createUri("https://api.flickr.com/services/feeds/photos_public.gne", "android, oreo", "en_us", true)
 
-        val getRawData = GetRawData(this)
-        getRawData.execute(url)
+            refreshImages(url)
+        }
 
         Log.d(TAG, "onCreate ends")
     }
@@ -54,9 +62,9 @@ class MainActivity : BaseActivity(),
         //Toast.makeText(this, "Long tap at position $position", Toast.LENGTH_SHORT).show()
         val photo = flickrRecyclerViewAdapter.getPhoto(position)
         if (photo != null) {
-                    val intent = Intent(this, PhotoDetailsActivity::class.java)
-                    intent.putExtra(PHOTO_TRANSFER, photo)
-                    startActivity(intent)
+            val intent = Intent(this, PhotoDetailsActivity::class.java)
+            intent.putExtra(PHOTO_TRANSFER, photo)
+            startActivity(intent)
         }
     }
 
@@ -73,18 +81,6 @@ class MainActivity : BaseActivity(),
         uri = builder.build()
 
         return uri.toString()
-    }
-
-    override fun onDataAvailable(data: List<Photo>) {
-        Log.d(TAG, ".onDataAvailable called, data is $data")
-
-        flickrRecyclerViewAdapter.loadNewPhoto(data)
-
-        Log.d(TAG, ".onDataAvailable ends")
-    }
-
-    override fun onError(exception: Exception) {
-        Log.d(TAG, ".onError called, error is ${exception.message}")
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -112,18 +108,6 @@ class MainActivity : BaseActivity(),
         }
     }
 
-    override fun onDownloadComplete(data: String, status: DownloadStatus) {
-        if (status == DownloadStatus.OK) {
-            Log.d(TAG, "onDownloadComplete called")
-
-            val getFlickrJsonData = GetFlickrJsonData(this)
-            getFlickrJsonData.execute(data)
-
-        } else {
-            Log.d(TAG, "onDownloadComplete failed with status $status. Error message is: $data")
-        }
-    }
-
     override fun onResume() {
         Log.d(TAG, ".onResume starts")
         super.onResume()
@@ -132,18 +116,70 @@ class MainActivity : BaseActivity(),
         val queryResult = sharedPref.getString(FLICKR_QUERY, "")
 
         if (queryResult != null) {
-            if (queryResult.isNotEmpty()){
-                val url = createUri("https://api.flickr.com/services/feeds/photos_public.gne", queryResult, "en_us", true)
+            if (queryResult.isNotEmpty()) {
+                CoroutineScope(Dispatchers.Main).launch {
+                    val url = createUri("https://api.flickr.com/services/feeds/photos_public.gne", queryResult, "en_us", true)
+                    refreshImages(url)
 
-                val getRawData = GetRawData(this)
-
-                Log.d(TAG, ".onResume new query: $url")
-
-                getRawData.execute(url)
+                }
             }
         }
     }
 
+    suspend fun getFlickrJsonData(url: String): ArrayList<Photo> {
+        return withContext(IO) {
+            val data = URL(url).readText()
 
+            val photoList = ArrayList<Photo>()
 
+            val jsonData = JSONObject(data)
+            val itemsArray = jsonData.getJSONArray("items")
+
+            for (i in 0 until itemsArray.length()) {
+                val jsonPhoto = itemsArray.getJSONObject(i)
+                val title = jsonPhoto.getString("title")
+                val author = jsonPhoto.getString("author")
+                val authorID = jsonPhoto.getString("author_id")
+                val tags = jsonPhoto.getString("tags")
+
+                val jsonMedia = jsonPhoto.getJSONObject("media")
+                val photoURL = jsonMedia.getString("m")
+                val link = photoURL.replaceFirst("_m.jpg", "_b.jpg")
+
+                val photoObject = Photo(title, author, authorID, link, tags, photoURL)
+                photoList.add(photoObject)
+                Log.d(TAG, ".doInBackground $photoObject")
+            }
+
+            photoList
+        }
+    }
+
+    suspend fun refreshImages(url: String) {
+
+        try {
+            val photoList = getFlickrJsonData(url)
+            flickrRecyclerViewAdapter.loadNewPhoto(photoList)
+        } catch (e: Exception) {
+            val errorMessage = when (e) {
+                is MalformedURLException -> {
+                    "Invalid URL ${e.message}"
+                }
+                is IOException -> {
+                    "IO Exception reading data: ${e.message}"
+                }
+                is SecurityException -> {
+                    "Security Exception: Needs permission? ${e.message}"
+                }
+                is JSONException -> {
+                    "Error processing Json data. ${e.message}"
+                }
+                else -> {
+                    "Unknown error: ${e.message}"
+
+                }
+            }
+            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
 }

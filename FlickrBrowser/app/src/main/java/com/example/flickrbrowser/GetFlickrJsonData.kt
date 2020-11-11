@@ -5,6 +5,10 @@ import android.util.Log
 import org.json.JSONException
 import org.json.JSONObject
 
+suspend fun getFlickrJsonData(url: String): List<Photo> {
+    return  doKtorCall(url);
+}
+
 class GetFlickrJsonData(private val listener: OnDataAvailable) : AsyncTask<String, Void, ArrayList<Photo>>() {
     private val TAG = "GetFlickrJsonData"
 

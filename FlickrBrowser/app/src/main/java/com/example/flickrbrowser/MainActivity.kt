@@ -4,13 +4,13 @@ import academy.learnprogramming.flickrbrowser.R
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.preference.PreferenceManager
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 
@@ -66,6 +66,7 @@ class MainActivity : BaseActivity(),
         var uri = Uri.parse(baseURL)
         var builder = uri.buildUpon()
         builder = builder.appendQueryParameter("tagmode", if (matchAll) "ALL" else "ANY")
+        builder = builder.appendQueryParameter("tags", searchCriteria)
         builder = builder.appendQueryParameter("lang", lang)
         builder = builder.appendQueryParameter("format", "json")
         builder = builder.appendQueryParameter("nojsoncallback", "1")
@@ -103,7 +104,10 @@ class MainActivity : BaseActivity(),
         Log.d(TAG, "onCreateItemSelected called")
 
         return when (item.itemId) {
-            R.id.action_settings -> true
+            R.id.action_search -> {
+                startActivity(Intent(this, SearchActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -117,6 +121,26 @@ class MainActivity : BaseActivity(),
 
         } else {
             Log.d(TAG, "onDownloadComplete failed with status $status. Error message is: $data")
+        }
+    }
+
+    override fun onResume() {
+        Log.d(TAG, ".onResume starts")
+        super.onResume()
+
+        val sharedPref = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        val queryResult = sharedPref.getString(FLICKR_QUERY, "")
+
+        if (queryResult != null) {
+            if (queryResult.isNotEmpty()){
+                val url = createUri("https://api.flickr.com/services/feeds/photos_public.gne", queryResult, "en_us", true)
+
+                val getRawData = GetRawData(this)
+
+                Log.d(TAG, ".onResume new query: $url")
+
+                getRawData.execute(url)
+            }
         }
     }
 
